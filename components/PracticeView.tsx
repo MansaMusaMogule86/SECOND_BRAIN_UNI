@@ -137,28 +137,46 @@ const PracticeView: React.FC<PracticeViewProps> = ({ step, title, instruction, o
     }
   };
 
-  // Single Focus Rhythm Logic
-  const chatOpacity = isInputFocused ? 0.3 : 1;
-  const inputOpacity = loading ? 0 : 1;
-  const inputEvents = loading ? 'none' : 'auto';
+  // Single Focus Logic (Strict)
+  const hasStarted = messages.length > 0;
+
+  let headerOpacity = 1;
+  let chatOpacity = 1;
+  let inputOpacity = 1;
+  let inputEvents = 'auto';
+
+  if (loading) {
+    // AI Speaking Mode: Content dominant, Input hidden
+    headerOpacity = 0.3;
+    chatOpacity = 1;
+    inputOpacity = 0;
+    inputEvents = 'none';
+  } else if (isInputFocused) {
+    // User Input Mode: Input dominant, others dimmed
+    headerOpacity = 0.3;
+    chatOpacity = 0.3;
+    inputOpacity = 1;
+    inputEvents = 'auto';
+  } else if (hasStarted) {
+    // Conversation Idle/Read Mode
+    headerOpacity = 0.3;
+    chatOpacity = 1;
+    inputOpacity = 1;
+  } else {
+    // Instruction Mode (Start)
+    // Keep input visible as call to action, but content is empty
+    headerOpacity = 1;
+    chatOpacity = 0;
+    inputOpacity = 1;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-theme-bg relative">
-      {/* Deep Research Toggle (Top Right) */}
-      <div className="absolute top-6 right-6 z-50">
-        <button
-          onClick={() => setResearchMode(!researchMode)}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-full border transition-all duration-500 ${researchMode ? 'bg-indigo-900/40 border-indigo-500 text-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.3)]' : 'bg-transparent border-theme-border text-theme-muted hover:border-theme-main'}`}
-        >
-          <div className={`w-2 h-2 rounded-full ${researchMode ? 'bg-indigo-400 animate-pulse' : 'bg-theme-muted'}`} />
-          <span className="text-xs uppercase tracking-widest font-bold">Deep Research</span>
-        </button>
-      </div>
       <div ref={scrollRef} className="flex-grow overflow-y-auto px-6 pt-32 pb-64 no-scrollbar">
+        {/* Header Container */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: chatOpacity }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
+          animate={{ opacity: headerOpacity }}
+          transition={{ duration: 0.5 }}
           className="max-w-2xl mx-auto space-y-20"
         >
           <div className="space-y-8">
@@ -172,27 +190,32 @@ const PracticeView: React.FC<PracticeViewProps> = ({ step, title, instruction, o
               <h2 className="text-3xl font-light text-theme-main leading-tight serif">{instruction}</h2>
             </motion.div>
           </div>
+        </motion.div>
 
-          <div className="space-y-12">
-            <AnimatePresence mode="popLayout">
-              {messages.map((msg, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`flex w-full ${msg.role === 'user' ? 'flex-col items-end' : 'items-start space-x-5'}`}>
-                    {msg.role === 'model' && <SparkleIcon />}
-                    <div className={`text-xl font-light tracking-tight leading-relaxed max-w-[90%] ${msg.role === 'user' ? 'text-theme-muted italic text-right' : 'text-theme-main serif origin-top-left'}`}>
-                      {msg.text}
-                      {msg.image && <img src={msg.image} alt="Upload" className="mt-4 rounded-xl max-w-xs border border-theme-border opacity-60" />}
-                    </div>
+        {/* Chat Content Container */}
+        <motion.div
+          animate={{ opacity: chatOpacity }}
+          transition={{ duration: 0.5 }}
+          className="max-w-2xl mx-auto space-y-12 mt-12"
+        >
+          <AnimatePresence mode="popLayout">
+            {messages.map((msg, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div className={`flex w-full ${msg.role === 'user' ? 'flex-col items-end' : 'items-start space-x-5'}`}>
+                  {msg.role === 'model' && <SparkleIcon />}
+                  <div className={`text-xl font-light tracking-tight leading-relaxed max-w-[90%] ${msg.role === 'user' ? 'text-theme-muted italic text-right' : 'text-theme-main serif origin-top-left'}`}>
+                    {msg.text}
+                    {msg.image && <img src={msg.image} alt="Upload" className="mt-4 rounded-xl max-w-xs border border-theme-border opacity-60" />}
                   </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
 
           {loading && (
             <motion.div
@@ -218,7 +241,7 @@ const PracticeView: React.FC<PracticeViewProps> = ({ step, title, instruction, o
           {!loading && suggestions.length > 0 && (
             <motion.div
               initial={{ opacity: 0 }}
-              animate={{ opacity: chatOpacity }}
+              animate={{ opacity: 1 }}
               className="flex flex-wrap gap-2 pt-4"
             >
               <div className="w-full mb-2">
@@ -275,6 +298,15 @@ const PracticeView: React.FC<PracticeViewProps> = ({ step, title, instruction, o
           )}
 
           <div className="relative group flex items-end space-x-4 border-b border-theme-border transition-all focus-within:border-indigo-400 pb-3">
+            {/* Deep Research Toggle moved next to upload */}
+            <button
+              onClick={() => setResearchMode(!researchMode)}
+              title={researchMode ? "Research Mode On" : "Enable Deep Research"}
+              className={`flex items-center space-x-2 pb-4 transition-all ${researchMode ? 'text-indigo-400' : 'text-theme-muted hover:text-theme-main'}`}
+            >
+              <div className={`w-1.5 h-1.5 rounded-full ${researchMode ? 'bg-indigo-400 animate-pulse' : 'bg-current opacity-50'}`} />
+            </button>
+
             <input
               type="file"
               ref={fileInputRef}
