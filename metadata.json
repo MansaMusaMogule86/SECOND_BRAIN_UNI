@@ -1,0 +1,8 @@
+{
+  "name": "Second Brain Live Experience",
+  "description": "A premium guided experience designed to transition beginners from AI confusion to mastery through a simple thinking framework and the $497 Second Brain System.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
