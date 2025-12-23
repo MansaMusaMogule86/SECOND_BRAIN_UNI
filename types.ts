@@ -14,8 +14,11 @@ export enum View {
   PERSONALIZATION = 'personalization', // 12. Personal Application
   PROJECTION = 'projection',       // 13. Projection into Life
   COMPLETION = 'completion',       // 14. End of Free Experience
-  UPSELL = 'upsell',               // 15. Upsell
-  SYSTEM = 'system'                // Post-purchase
+  SYSTEM_INSTALLATION = 'system_installation', // 11 Step Calibration
+  POST_INSTALL = 'post_install',   // Transition
+  UPSELL = 'upsell',               // Upsell ($497)
+  PERMANENT_SYSTEM = 'permanent_system', // Full OS
+  SYSTEM = 'system'                // Legacy/Fallback
 }
 
 export interface GroundingChunk {

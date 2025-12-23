@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { transitions } from './utils/motion';
@@ -16,6 +15,7 @@ import ProjectionView from './components/ProjectionView';
 import CompletionView from './components/CompletionView';
 import UpsellView from './components/UpsellView';
 import SystemView from './components/SystemView';
+import PostInstallView from './components/PostInstallView';
 import ThemeToggle from './components/ThemeToggle';
 
 const App: React.FC = () => {
@@ -23,7 +23,7 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('payment') === 'success') {
-      return View.SYSTEM;
+      return View.PERMANENT_SYSTEM;
     }
     const saved = localStorage.getItem('sb_session_step');
     return (saved as View) || View.GATE; // Default to GATE for simplicity in this flow
@@ -152,13 +152,20 @@ const App: React.FC = () => {
                 return <ProjectionView onNext={() => setCurrentView(View.COMPLETION)} />;
 
               case View.COMPLETION: // Step 14
-                return <CompletionView onNext={() => setCurrentView(View.UPSELL)} />;
+                return <CompletionView onNext={() => setCurrentView(View.SYSTEM_INSTALLATION)} />;
 
-              case View.UPSELL: // Step 15
-                return <UpsellView onJoin={() => setCurrentView(View.SYSTEM)} />;
+              case View.SYSTEM_INSTALLATION: // [NEW] Free Installation Phase
+                return <SystemView onComplete={() => setCurrentView(View.POST_INSTALL)} isPermanent={false} />;
 
+              case View.POST_INSTALL: // [NEW] Transition
+                return <PostInstallView onNext={() => setCurrentView(View.UPSELL)} />;
+
+              case View.UPSELL: // Step 15 ($497)
+                return <UpsellView onJoin={() => setCurrentView(View.PERMANENT_SYSTEM)} />;
+
+              case View.PERMANENT_SYSTEM: // Final State
               case View.SYSTEM:
-                return <SystemView />;
+                return <SystemView isPermanent={true} />;
 
               default:
                 return <GateView onComplete={() => setCurrentView(View.DECOMPRESSION)} />;

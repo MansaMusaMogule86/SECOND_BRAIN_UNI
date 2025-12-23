@@ -85,7 +85,7 @@ const UpsellView: React.FC<UpsellViewProps> = ({ onJoin }) => {
             whileTap={{ scale: 0.99 }}
             className="px-14 py-5 bg-theme-main text-theme-bg rounded-full font-medium text-lg shadow-xl"
           >
-            Install System
+            Install System ($497)
           </motion.button>
 
           <div className="flex flex-col space-y-2 opacity-50">
