@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { transitions } from './utils/motion';
 import { View } from './types';
 import LandingView from './components/LandingView';
 import GateView from './components/GateView';
@@ -55,10 +56,10 @@ const App: React.FC = () => {
       <AnimatePresence mode="wait">
         <motion.div
           key={currentView}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.5 }}
+          initial={transitions.screen.initial}
+          animate={transitions.screen.animate}
+          exit={transitions.screen.exit}
+          transition={transitions.screen.transition}
           className="w-full h-full"
         >
           {(() => {
