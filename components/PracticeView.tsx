@@ -89,18 +89,38 @@ const PracticeView: React.FC<PracticeViewProps> = ({ step, title, instruction, o
     }
   };
 
+  /* State for Wild Features */
+  const [researchMode, setResearchMode] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSend = async (textToSend?: string) => {
     const finalInput = textToSend || input;
-    if (!finalInput.trim() || loading) return;
+    if ((!finalInput.trim() && !selectedImage) || loading) return;
 
     setSuggestions([]);
-    setMessages(prev => [...prev, { role: 'user', text: finalInput }]);
+    setMessages(prev => [...prev, { role: 'user', text: finalInput, image: selectedImage || undefined }]);
     setInput('');
+    setSelectedImage(null); // Clear image after send
     setLoading(true);
     setError(null);
 
     try {
-      const res = await getAIResponse(finalInput, 'thinking');
+      // Use 'search' mode if toggle is on, otherwise default 'thinking' (or 'fast' for simple)
+      const mode = researchMode ? 'search' : 'thinking';
+
+      const res = await getAIResponse(finalInput, mode, selectedImage || undefined);
       // If the provider returned strict text
       const modelText = typeof res === 'string' ? res : (res.text || "Insight generated.");
 
@@ -116,7 +136,17 @@ const PracticeView: React.FC<PracticeViewProps> = ({ step, title, instruction, o
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-theme-bg">
+    <div className="min-h-screen flex flex-col bg-theme-bg relative">
+      {/* Deep Research Toggle (Top Right) */}
+      <div className="absolute top-6 right-6 z-50">
+        <button
+          onClick={() => setResearchMode(!researchMode)}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-full border transition-all duration-500 ${researchMode ? 'bg-indigo-900/40 border-indigo-500 text-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.3)]' : 'bg-transparent border-theme-border text-theme-muted hover:border-theme-main'}`}
+        >
+          <div className={`w-2 h-2 rounded-full ${researchMode ? 'bg-indigo-400 animate-pulse' : 'bg-theme-muted'}`} />
+          <span className="text-xs uppercase tracking-widest font-bold">Deep Research</span>
+        </button>
+      </div>
       <div ref={scrollRef} className="flex-grow overflow-y-auto px-6 pt-32 pb-64 no-scrollbar">
         <motion.div
           initial={{ opacity: 0 }}
@@ -216,16 +246,48 @@ const PracticeView: React.FC<PracticeViewProps> = ({ step, title, instruction, o
       </div>
 
       <footer className="p-8 pb-12 fixed bottom-0 left-0 right-0 bg-gradient-to-t from-theme-bg via-theme-bg to-transparent z-50">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl mx-auto space-y-4">
+
+          {selectedImage && (
+            <div className="relative inline-block">
+              <img src={selectedImage} alt="Preview" className="h-16 w-16 object-cover rounded-xl border border-indigo-500/30" />
+              <button
+                onClick={() => setSelectedImage(null)}
+                className="absolute -top-2 -right-2 bg-theme-bg border border-theme-border rounded-full p-1 text-theme-muted hover:text-red-400"
+              >
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+          )}
+
           <div className="relative group flex items-end space-x-4 border-b border-theme-border transition-all focus-within:border-indigo-400 pb-3">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+              className="hidden"
+              accept="image/*"
+            />
+
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               disabled={loading}
-              placeholder={isFreeform ? "Ask something real..." : "Paste instruction here..."}
+              placeholder={isFreeform ? (researchMode ? "Ask deeper questions..." : "Ask something real...") : "Paste instruction here..."}
               className="flex-grow bg-transparent py-4 text-xl font-light outline-none disabled:opacity-30 placeholder:text-theme-muted text-theme-main"
             />
+
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading}
+              title="Upload Image"
+              className="text-theme-muted hover:text-indigo-400 transition-colors pb-4"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </button>
 
             <button
               onClick={isRecording ? stopRecording : startRecording}
@@ -234,18 +296,18 @@ const PracticeView: React.FC<PracticeViewProps> = ({ step, title, instruction, o
               className={`${isRecording ? 'text-red-500 animate-pulse scale-110' : 'text-theme-muted hover:text-indigo-400'} transition-all pb-4`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
               </svg>
             </button>
 
             <button
               onClick={() => handleSend()}
-              disabled={loading || !input.trim()}
+              disabled={loading || (!input.trim() && !selectedImage)}
               title="Send message"
               className="text-theme-muted hover:text-indigo-400 transition-colors pb-4"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </button>
           </div>
