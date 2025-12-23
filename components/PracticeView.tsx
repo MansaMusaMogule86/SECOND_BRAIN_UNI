@@ -35,6 +35,7 @@ const PracticeView: React.FC<PracticeViewProps> = ({ step, title, instruction, o
   const [error, setError] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -114,6 +115,7 @@ const PracticeView: React.FC<PracticeViewProps> = ({ step, title, instruction, o
     setInput('');
     setSelectedImage(null); // Clear image after send
     setLoading(true);
+    setIsInputFocused(false);
     setError(null);
 
     try {
@@ -135,6 +137,11 @@ const PracticeView: React.FC<PracticeViewProps> = ({ step, title, instruction, o
     }
   };
 
+  // Single Focus Rhythm Logic
+  const chatOpacity = isInputFocused ? 0.3 : 1;
+  const inputOpacity = loading ? 0 : 1;
+  const inputEvents = loading ? 'none' : 'auto';
+
   return (
     <div className="min-h-screen flex flex-col bg-theme-bg relative">
       {/* Deep Research Toggle (Top Right) */}
@@ -150,7 +157,8 @@ const PracticeView: React.FC<PracticeViewProps> = ({ step, title, instruction, o
       <div ref={scrollRef} className="flex-grow overflow-y-auto px-6 pt-32 pb-64 no-scrollbar">
         <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          animate={{ opacity: chatOpacity }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
           className="max-w-2xl mx-auto space-y-20"
         >
           <div className="space-y-8">
@@ -176,8 +184,9 @@ const PracticeView: React.FC<PracticeViewProps> = ({ step, title, instruction, o
                 >
                   <div className={`flex w-full ${msg.role === 'user' ? 'flex-col items-end' : 'items-start space-x-5'}`}>
                     {msg.role === 'model' && <SparkleIcon />}
-                    <div className={`text-xl font-light tracking-tight leading-relaxed max-w-[90%] ${msg.role === 'user' ? 'text-theme-muted italic text-right' : 'text-theme-main serif'}`}>
+                    <div className={`text-xl font-light tracking-tight leading-relaxed max-w-[90%] ${msg.role === 'user' ? 'text-theme-muted italic text-right' : 'text-theme-main serif origin-top-left'}`}>
                       {msg.text}
+                      {msg.image && <img src={msg.image} alt="Upload" className="mt-4 rounded-xl max-w-xs border border-theme-border opacity-60" />}
                     </div>
                   </div>
                 </motion.div>
@@ -209,7 +218,7 @@ const PracticeView: React.FC<PracticeViewProps> = ({ step, title, instruction, o
           {!loading && suggestions.length > 0 && (
             <motion.div
               initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              animate={{ opacity: chatOpacity }}
               className="flex flex-wrap gap-2 pt-4"
             >
               <div className="w-full mb-2">
@@ -245,7 +254,12 @@ const PracticeView: React.FC<PracticeViewProps> = ({ step, title, instruction, o
         </motion.div>
       </div>
 
-      <footer className="p-8 pb-12 fixed bottom-0 left-0 right-0 bg-gradient-to-t from-theme-bg via-theme-bg to-transparent z-50">
+      <motion.footer
+        initial={{ opacity: 1 }}
+        animate={{ opacity: inputOpacity, pointerEvents: inputEvents as any }}
+        transition={{ duration: 0.5 }}
+        className="p-8 pb-12 fixed bottom-0 left-0 right-0 bg-gradient-to-t from-theme-bg via-theme-bg to-transparent z-50"
+      >
         <div className="max-w-2xl mx-auto space-y-4">
 
           {selectedImage && (
@@ -272,6 +286,8 @@ const PracticeView: React.FC<PracticeViewProps> = ({ step, title, instruction, o
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onFocus={() => setIsInputFocused(true)}
+              onBlur={() => setIsInputFocused(false)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               disabled={loading}
               placeholder={isFreeform ? (researchMode ? "Ask deeper questions..." : "Ask something real...") : "Paste instruction here..."}
@@ -312,7 +328,7 @@ const PracticeView: React.FC<PracticeViewProps> = ({ step, title, instruction, o
             </button>
           </div>
         </div>
-      </footer>
+      </motion.footer>
     </div>
   );
 };
